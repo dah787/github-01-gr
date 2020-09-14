@@ -1,0 +1,572 @@
+{
+	"info": {
+		"_postman_id": "7a396cf4-5b56-471b-91c6-59a274059bd8",
+		"name": "Github-01-GraphQL",
+		"description": "Github user scenario \"User can log in, get information, create and archive repositories, issues, pull requests\":\r\n1.Get user's info\r\n2.Get list of repositories\r\n3.Create repository\r\n4.Get created repository (check if existed)\r\n5.Get labels of repository\r\n6.Create issue of repository\r\n7.Get created issue of repository (check if existed)\r\n8.Get pull requests of repository\r\n9.Archive repository\r\n10.Get archived repository (check if archived)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get user's info *G",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "14892516-0241-4aee-8483-c42a5c9042da",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"pm.test(\"User \" + pm.environment.get(\"owner\") + \" has the same login: \" + jsonData.data.user.login)"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query($username: String!) { \r\n  user(login: $username) { \r\n    login\r\n    name\r\n    id\r\n    __typename\r\n    createdAt\r\n  }\r\n}",
+						"variables": "{\r\n    \"username\": \"{{owner}}\"\r\n}"
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get list of repositories *G",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "afe40900-ea74-433b-8c9a-63a15cf01a21",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"for (var x in jsonData.data.user.repositories.nodes) {};\r",
+							"pm.test(\"User \" + pm.environment.get(\"owner\") + \" has \" + (Number(x) + 1) + \" repositories\")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query($username: String!) { \r\n  user(login: $username) {\r\n    login\r\n    repositories(last:25, orderBy:{field:CREATED_AT, direction:DESC}){\r\n      nodes{\r\n        name\r\n      }\r\n    }\r\n  }\r\n}",
+						"variables": "{\r\n    \"username\": \"{{owner}}\"\r\n}"
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create repository *G",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "8f2083ac-4321-4765-9bf3-284cdec567e2",
+						"exec": [
+							"var randomNum = Math.random().toFixed(3) * 1000;\r",
+							"var repoNameVar = \"Repo-\" + randomNum;\r",
+							"pm.environment.set(\"repoName\", repoNameVar)"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "8d041a76-9407-4180-a45e-1a3b9ec30db1",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"pm.environment.set(\"repoId\", jsonData.data.createRepository.repository.id);\r",
+							"\r",
+							"pm.test(\"Repository \" + pm.environment.get(\"repoName\") + \" has been created\", function () {\r",
+							"    pm.expect(jsonData.data.createRepository.repository.name).to.eql(pm.environment.get(\"repoName\"))\r",
+							"    }\r",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "mutation($repoName: String!) { \r\n  createRepository(input:{name:$repoName, visibility:PUBLIC}) { \r\n    clientMutationId,\r\n    repository {\r\n      id\r\n      nameWithOwner\r\n      name\r\n    }\r\n  }\r\n}",
+						"variables": "{\r\n    \"repoName\": \"{{repoName}}\"\r\n}"
+					},
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get created repo *G",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "bfb42c72-37bc-4797-889d-6aa2be6d362a",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"pm.test(\"Repository \" + pm.environment.get(\"repoName\") + \" is existed\", function () {\r",
+							"    pm.expect(jsonData.data.user.repository.name).to.eql(pm.environment.get(\"repoName\"))\r",
+							"    }\r",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query($username: String!, $repoName: String!) {\r\n  user(login: $username) {\r\n    login\r\n    repository(name: $repoName) {\r\n      name\r\n      url\r\n    }\r\n  }\r\n}",
+						"variables": "{\r\n    \"username\": \"{{owner}}\",\r\n    \"repoName\": \"{{repoName}}\"\r\n}"
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get labeis of repo *G",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "98619b0d-0133-4fc4-85ff-bea0698c8f36",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"for (var x in jsonData.data.user.repository.labels.nodes) {};\r",
+							"\r",
+							"pm.test(\"Repository \" + pm.environment.get(\"repoName\") + \" has \" + (Number(x) + 1) + \" labels\")"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query($username: String!, $repoName: String!){\r\n  user(login: $username){\r\n    login\r\n    repository(name: $repoName){\r\n      labels(last: 25){\r\n        nodes{\r\n          name\r\n          id\r\n        }\r\n      }\r\n    }\r\n  }\r\n}",
+						"variables": "{\r\n    \"username\": \"{{owner}}\",\r\n    \"repoName\": \"{{repoName}}\"\r\n}"
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create issue of repo *G",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8584746d-d857-4b2d-bcdc-67432be73dec",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"pm.environment.set(\"issueNumber\", jsonData.data.createIssue.issue.number);\r",
+							"\r",
+							"pm.test(\"In repository \" + pm.environment.get(\"repoName\") + \" has been created issue \" + jsonData.data.createIssue.issue.title + \" with label \" + jsonData.data.createIssue.issue.labels.nodes[0].name, function () {\r",
+							"    pm.expect(jsonData.data.createIssue.issue.labels.nodes[0].id).to.eql(pm.environment.get(\"labelIds\"))\r",
+							"    }\r",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "8fdf3dda-1347-4456-9539-daef35f717e8",
+						"exec": [
+							"var randomNum = Math.random().toFixed(3) * 1000;\r",
+							"var issueTitleVar = \"Issue-\" + randomNum;\r",
+							"pm.environment.set(\"issueTitle\", issueTitleVar)"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "mutation($repoId:ID!,$issueTitle:String!,$issueBody:String!,$labelIds:ID!) {\r\n  createIssue(input:{\r\n    repositoryId:$repoId,\r\n    title:$issueTitle,\r\n    body:$issueBody,\r\n    labelIds:$labelIds}) {\r\n        clientMutationId\r\n        issue{\r\n          title\r\n          number\r\n          labels(last:5){\r\n            nodes{\r\n              color\r\n              name\r\n              id\r\n              }\r\n            }\r\n        }\r\n    }\r\n  }",
+						"variables": "{\r\n    \"repoId\": \"{{repoId}}\",\r\n    \"issueTitle\": \"{{issueTitle}}\",\r\n    \"issueBody\": \"Something found - 2\",\r\n    \"labelIds\": \"{{labelIds}}\"\r\n}"
+					},
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get created issue *G",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "78629574-48a2-4f8f-b679-adb4dc0d2e67",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"pm.test(\"Issue \" + pm.environment.get(\"issueNumber\") + \".\" + pm.environment.get(\"issueTitle\") + \" is existed in repository \" + pm.environment.get(\"repoName\"), function () {\r",
+							"    pm.expect(jsonData.data.user.repository.issue.title).to.eql(pm.environment.get(\"issueTitle\"))\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query($username: String!, $repoName: String!, $issueNumber: Int!) { \r\n  user(login: $username) {\r\n    repository(name: $repoName){\r\n      name\r\n      url\r\n      issue(number: $issueNumber){\r\n          number\r\n          title\r\n          body\r\n          id\r\n      }\r\n    }\r\n  }\r\n}",
+						"variables": "{\r\n    \"username\": \"{{owner}}\",\r\n    \"repoName\": \"{{repoName}}\",\r\n    \"issueNumber\": {{issueNumber}}\r\n}"
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get pull requests *G",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "32e2909e-e393-4683-836a-616499f0134c",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"if(jsonData.data.user.repository.pullRequests.nodes.length == 0) {\r",
+							"    pm.test(\"There are no pull requests in repository \" + pm.environment.get(\"repoName\"))\r",
+							"} else {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    for (var x in jsonData.data.user.repository.pullRequests.nodes) {};\r",
+							"    pm.test(\"Thera are \" + (Number(x) + 1) + \" pull requests in repository \" + pm.environment.get(\"repoName\"))\r",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query($username: String!, $repoName: String!) { \r\n  user(login: $username) {\r\n    repository(name: $repoName){\r\n      name\r\n      url\r\n      pullRequests(last:5) {\r\n          totalCount\r\n          nodes{\r\n              title\r\n              createdAt\r\n          }\r\n      }\r\n    }\r\n  }\r\n}",
+						"variables": "{\r\n    \"username\": \"{{owner}}\",\r\n    \"repoName\": \"{{repoName}}\"\r\n}"
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Archive repo *G",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "b6812a9c-aa3d-44fb-8d1e-078f86525d9c",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "0685a98b-0ec6-448d-b07e-ee272ccbd54f",
+						"exec": [
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"if (responseCode.code === 200 && jsonData.data.archiveRepository.repository.isArchived == true) {\r",
+							"    pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"    pm.test(\"Supposed, repository \" + pm.environment.get(\"repoName\") + \" has been archived\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"})\r",
+							"} else {\r",
+							"    pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"    pm.test(\"Repository \" + pm.environment.get(\"repoName\") + \" has not been found or has been archived earlier\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"})\r",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "mutation($repoId: ID!) { \r\n  archiveRepository(input:{repositoryId:$repoId}) {\r\n    clientMutationId,\r\n    repository {\r\n      id\r\n      nameWithOwner\r\n      name\r\n      isArchived\r\n      isDisabled\r\n      isLocked\r\n    }\r\n  }\r\n}",
+						"variables": "{\r\n    \"repoId\": \"{{repoId}}\"\r\n}"
+					},
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get archived repo *G",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "017eb9a6-36a4-4e6e-9358-2c5be0890478",
+						"exec": [
+							"var jsonData = pm.response.json();\r",
+							"\r",
+							"if (jsonData.data.user.repository == null){\r",
+							"    pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"    pm.test(\"Repository \" + pm.environment.get(\"repoName\") + \" has not been archived or found\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"})\r",
+							"} else {\r",
+							"    pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"    pm.test(\"Supposed, repository \" + pm.environment.get(\"repoName\") + \" has been archived\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"})\r",
+							"}\r",
+							"\r",
+							"/*\r",
+							"if (responseCode.code === 200 && jsonData.data.user.repository.isArchived == true) {\r",
+							"    pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"    pm.test(\"Supposed, repository \" + pm.environment.get(\"repoName\") + \" has been archived\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"})\r",
+							"} else {\r",
+							"    pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"    pm.test(\"Repository \" + pm.environment.get(\"repoName\") + \" has not been archived or found\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"})\r",
+							"}\r",
+							"*/"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "graphql",
+					"graphql": {
+						"query": "query($username: String!, $repoName: String!) {\r\n  user(login: $username) {\r\n    login\r\n    repository(name: $repoName) {\r\n      name\r\n      url\r\n      isArchived\r\n    }\r\n  }\r\n}",
+						"variables": "{\r\n    \"username\": \"{{owner}}\",\r\n    \"repoName\": \"{{repoName}}\"\r\n}"
+					}
+				},
+				"url": {
+					"raw": "{{basicURL}}/graphql",
+					"host": [
+						"{{basicURL}}"
+					],
+					"path": [
+						"graphql"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "ca446041-16d7-4e99-9bef-cda542fd17c1",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "c280fbd5-3ebd-4348-bca5-9650155b49eb",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"protocolProfileBehavior": {}
+}
