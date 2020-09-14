@@ -183,7 +183,7 @@
 				"body": {
 					"mode": "graphql",
 					"graphql": {
-						"query": "query($username: String!, $repoName: String!) {\r\n  user(login: $username) {\r\n    login\r\n    repository(name: $repoName) {\r\n      name\r\n      url\r\n    }\r\n  }\r\n}",
+						"query": "query($username: String!, $repoName: String!) {\r\n  user(login: $username) {\r\n    login\r\n    repository(name: $repoName) {\r\n      id\r\n      name\r\n      url\r\n    }\r\n  }\r\n}",
 						"variables": "{\r\n    \"username\": \"{{owner}}\",\r\n    \"repoName\": \"{{repoName}}\"\r\n}"
 					}
 				},
@@ -212,6 +212,8 @@
 							"});\r",
 							"\r",
 							"var jsonData = pm.response.json();\r",
+							"\r",
+							"pm.environment.set(\"labelIds\", jsonData.data.user.repository.labels.nodes[0].id);\r",
 							"\r",
 							"for (var x in jsonData.data.user.repository.labels.nodes) {};\r",
 							"\r",
